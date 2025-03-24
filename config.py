@@ -2,10 +2,10 @@ import pygame
 
 
 # Number constants
-GRAVITY = 0.1
+GRAVITY = 0.2
 SCREEN_X = 1200
 SCREEN_Y = 800
-FPS = 40
+FPS = 30
 ACCELERATE = 0.1
 
 
