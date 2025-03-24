@@ -1,9 +1,11 @@
+import pygame
+
 
 # Number constants
-GRAVITY = 0.05
+GRAVITY = 0.1
 SCREEN_X = 1200
 SCREEN_Y = 800
-FPS = 120
+FPS = 40
 ACCELERATE = 0.1
 
 
@@ -17,3 +19,8 @@ GREEN = (0, 255, 0)
 
 # Boolean constants
 DONE = False
+
+#initiate pygame
+
+# Image files
+T_IMAGE = "triangle.png" # https://www.cleanpng.com/png-triangle-sticker-geometric-shape-1556351/download-png.html
