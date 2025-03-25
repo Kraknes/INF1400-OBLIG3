@@ -4,6 +4,10 @@ import math
 import config
 import time 
 
+# lag bensinkanne for fuel påfyll
+# lag tekst for spiller, liv og fuel
+# 
+
 
 class Sprite(pygame.sprite.Sprite): # Alle objektene henter inn denne for å kunne konstruere Sprites
     def __init__(self):
@@ -25,10 +29,11 @@ class Player_Object(Sprite): # Spiller klasse
         self.speed_x = 0
         self.angle = 0
         self.bullet_list = pygame.sprite.Group()
+        self.rect.centerx = float(random.uniform(0, config.SCREEN_X-self.width))
+        self.rect.centery = float(random.uniform(140, config.SCREEN_Y-self.height))
         self.health = 100
         self.fuel = 100
-        self.rect.centerx = float(random.uniform(0, config.SCREEN_X-self.width))
-        self.rect.centery = float(random.uniform(0, config.SCREEN_Y-self.height))
+        self.score = 0
 
     
     class Bullet(Sprite):
@@ -65,13 +70,19 @@ class Player_Object(Sprite): # Spiller klasse
 
     def screen_bars_update(self):
         if self.number == 1:
-
+            textScore = fontScore.render(str(self.score), True, config.WHITE, None)
+            textScoreRect = textScore.get_rect()
+            textScoreRect.topleft = (330, 30)
+            
             pygame.draw.rect(screen, config.GREEN, pygame.Rect(30, 60, self.health*3, 30)) # Health bar
             pygame.draw.rect(screen, config.YELLOW, pygame.Rect(30, 100, self.fuel*3, 30)) # Fuel bar
         if self.number == 2:
+            textScore = fontScore.render(str(self.score), True, config.WHITE, None)
+            textScoreRect = textScore.get_rect()
+            textScoreRect.topright = (config.SCREEN_X-330, 30)
             pygame.draw.rect(screen, config.GREEN, pygame.Rect(config.SCREEN_X - 330, 60, self.health*3, 30))
             pygame.draw.rect(screen, config.YELLOW, pygame.Rect(config.SCREEN_X - 330, 100, self.fuel*3, 30))
-        
+        screen.blit(textScore, textScoreRect)
             
     def shoot(self):
         bullet = self.Bullet(self.angle, self.rect.centerx, self.rect.centery)
@@ -105,8 +116,6 @@ class Player_Object(Sprite): # Spiller klasse
         self.bullet_list.update()
         self.bullet_list.draw(screen)
         self.rect.move_ip(round(self.speed_x),round(self.speed_y))
-        if self.health == 0:
-            self.kill()  # Må fikses
             
       
         
@@ -122,18 +131,46 @@ def create_objects():
  
 def play_game(group):
     player_group  = group.sprites()
+    player1 = player_group[0]
+    player2 = player_group[1]
+
+    if player1.health == 0:
+        player2.score += 1
+        player1.health = 100
+    if player2.health == 0:
+        player1.score += 1
+        player2.health = 100
+
+    if player1.score == 3 or player2.score == 3:
+        screen.fill(config.BLACK)
+        font = pygame.font.Font('freesansbold.ttf', 100)
+        if player1.score == 3:
+            gameOver = font.render("PLAYER 1 WINS!", True, config.WHITE, None)
+        else:
+            gameOver = font.render("PLAYER 2 WINS!", True, config.WHITE, None)
+        gameOverRect= gameOver.get_rect()
+        gameOverRect.center = (config.SCREEN_X/2,config.SCREEN_Y/2)
+        screen.blit(gameOver,gameOverRect)
+        pygame.display.update()
+        pygame.time.wait(5000)
+        
+        player1.score = 0
+        player2.score = 0
+
     keys = pygame.key.get_pressed() 
-    if player_group:
-        if player_group[0]:
-            if keys[pygame.K_w]: 
-                if player_group[0].fuel != 0:
-                    player_group[0].acceleration()
-            if keys[pygame.K_d]:
-                player_group[0].rotateObject(5)
-            if keys[pygame.K_a]:
-                player_group[0].rotateObject(-5)
-            if keys[pygame.K_SPACE]:
-                player_group[0].shoot()
+
+    if player1:
+        if keys[pygame.K_w]: 
+            if player1.fuel != 0:
+                player1.acceleration()
+        if keys[pygame.K_d]:
+            player1.rotateObject(5)
+        if keys[pygame.K_a]:
+            player1.rotateObject(-5)
+        if keys[pygame.K_SPACE]:
+            player1.shoot()
+
+
 
 
             
@@ -145,8 +182,17 @@ def play_game(group):
                 pygame.sprite.Group.empty(group)
                 group.add(Player_Object(config.T_IMAGE,1))
                 group.add(Player_Object(config.T_IMAGE,2))
+
+                # funker ikke
+                player_group  = group.sprites()
+                player1 = player_group[0]
+                player2 = player_group[1]
                 
     screen.fill(config.BLACK)
+
+    screen.blit(text1, textrect1)
+    screen.blit(text2, textrect2)
+
     group.update()
     group.draw(screen)
     pygame.display.update()
@@ -156,12 +202,31 @@ def play_game(group):
 
 pygame.init()
 pygame.font.init()
+
+# Dette e rotete, få dette ut. lag en funksjon i config.py
+font = pygame.font.Font('freesansbold.ttf', 30)
+fontScore = pygame.font.Font('freesansbold.ttf', 90)
+text1 = font.render('Player1', True, config.WHITE, None)
+textrect1 = text1.get_rect()
+textrect1.topleft = (30,30)
+
+text2 = font.render('Player2', True, config.WHITE, None)
+textrect2 = text2.get_rect()
+textrect2.topright = (config.SCREEN_X-30, 30)
+
+textscore = font.render('GeeksForGeeks', True, config.WHITE, None)
+
 screen = pygame.display.set_mode((config.SCREEN_X, config.SCREEN_Y))
+# til hit
+
 pygame.display.set_caption("Erling's Mayhamorama")
 clock = pygame.time.Clock()
 
 
 sprite_group, bullet_group = create_objects()
+
+# funker ikke med restart
+
 
 if __name__ == "__main__":
     while not config.DONE:
