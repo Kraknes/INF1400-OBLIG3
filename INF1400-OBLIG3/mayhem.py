@@ -7,6 +7,7 @@ import time
 # lag bensinkanne for fuel påfyll, eller landingsplatform
 # lag tekst for spiller, liv og fuel
 # lag objekt som man kan kræsje i
+# lag vegger
 # hvis en spiller kræsjer, mister man poeng
 
 # Må ha minimum to filer - OK
