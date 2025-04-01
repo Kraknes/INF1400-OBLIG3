@@ -41,14 +41,17 @@ class Obstacle(Sprite):
         self.original_image = self.image
         self.rect.centerx = float(random.uniform(400, config.SCREEN_X-400))
         self.rect.centery = float(random.uniform(400, config.SCREEN_Y-400))
+        self.angle = 0
         
     def rotate(self):
-        self.image = pygame.transform.rotozoom(self.original_image, 0.1, 1)
+        self.image = pygame.transform.rotozoom(self.original_image, self.angle, 1)
         self.rect = self.image.get_rect(center=self.rect.center)
         self.image.blit(self.image, self.rect)
         
+        
     def update(self):
-        self.rotate(self)
+        self.angle += 1
+        self.rotate()
         
         
         
@@ -73,8 +76,6 @@ class Player_Object(Sprite): # Spiller klasse
         self.fuel = 100
         self.score = 0
         
-        
-        self.bullet_list = pygame.sprite.Group() # er denne nødvendig?
         self.mask = pygame.mask.from_surface(self.image) # om det er tid
 
     
@@ -93,7 +94,8 @@ class Player_Object(Sprite): # Spiller klasse
         def hit_player(self, group):
             hit_list = pygame.sprite.spritecollide(self, group, False)
             for sprite in hit_list:
-                sprite.health -= 10
+                if isinstance(sprite, Player_Object):
+                    sprite.health -= 10
                 self.kill()    
 
         def update(self,group):
@@ -106,6 +108,7 @@ class Player_Object(Sprite): # Spiller klasse
             # henter sprites som blir truffet av skudd
             self.hit_player(group)
             self.rect.move_ip(round(self.speed_x * 10),round(self.speed_y * 10))
+            
         
         
             
@@ -183,7 +186,7 @@ class Player_Object(Sprite): # Spiller klasse
     def update(self):
         # self.gravity()
         self.screen_bars_update()
-        self.bullet_list.draw(pg_init.screen)
+
         self.rect.move_ip(round(self.speed_x),round(self.speed_y))
             
       
@@ -201,7 +204,8 @@ class Game:
         self.sprite_group.add(Player_Object(1, config.T_IMAGE, 30)) # Spiller 1
         self.sprite_group.add(Player_Object(2, config.T_IMAGE, 30)) # Spiller 2
         self.player_group = self.sprite_group.sprites()
-        self.obstacle_group.add(Obstacle(config.O_IMAGE, 50))
+        self.all_group = self.sprite_group
+        self.all_group.add(Obstacle(config.O_IMAGE, 100))
         
 
     def reset_game(self):
@@ -209,6 +213,7 @@ class Game:
         pygame.sprite.Group.empty(self.bullet_group)
         self.sprite_group.add(Player_Object(1, config.T_IMAGE, 30)) # Spiller 1
         self.sprite_group.add(Player_Object(2, config.T_IMAGE, 30)) # Spiller 2
+        self.player_group = self.sprite_group.sprites()
 
     def play_game(self):
         while not config.DONE:
@@ -233,8 +238,8 @@ class Game:
                 gameOverRect.center = (config.SCREEN_X/2,config.SCREEN_Y/2)
                 pg_init.screen.blit(gameOver,gameOverRect)
                 pygame.display.update()
-                pygame.time.wait(5000)
-                player1, player2 = self.reset_game()
+                pygame.time.wait(3000)
+                self.reset_game()
 
             keys = pygame.key.get_pressed() 
 
@@ -275,9 +280,11 @@ class Game:
             pg_init.screen.blit(text_file.player_2_text, text_file.textRect2)
 
             self.sprite_group.update()
-            self.bullet_group.update(self.sprite_group)
+            self.bullet_group.update(self.all_group) 
             self.obstacle_group.update()
+            self.bullet_group.draw(pg_init.screen)
             self.sprite_group.draw(pg_init.screen)
+            self.obstacle_group.draw(pg_init.screen)
             pygame.display.update()
             pygame.display.flip()
             self.clock.tick(config.FPS)
