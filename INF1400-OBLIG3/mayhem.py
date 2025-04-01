@@ -2,6 +2,8 @@ import pygame
 import random
 import math
 import config
+import text_file
+import pg_init
 import time 
 
 # lag bensinkanne for fuel påfyll, eller landingsplatform
@@ -24,49 +26,77 @@ import time
 # Profiler med cProfiler. Ta en screenshot av test og ha det i rapport, diskuter den. 
 
 class Sprite(pygame.sprite.Sprite): # Alle objektene henter inn denne for å kunne konstruere Sprites
-    def __init__(self):
+    def __init__(self, image, image_size):
         super().__init__()
+        self.image = image
+        self.image = pygame.image.load(self.image).convert_alpha()
+        self.image = pygame.transform.smoothscale(self.image, (image_size,image_size))
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.rect = self.image.get_rect() 
         
-class Object(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
+class Obstacle(Sprite):
+    def __init__(self, image, image_size):
+        super().__init__(image, image_size)
+        self.original_image = self.image
+        self.rect.centerx = float(random.uniform(400, config.SCREEN_X-400))
+        self.rect.centery = float(random.uniform(400, config.SCREEN_Y-400))
+        
+    def rotate(self):
+        self.image = pygame.transform.rotozoom(self.original_image, 0.1, 1)
+        self.rect = self.image.get_rect(center=self.rect.center)
+        self.image.blit(self.image, self.rect)
+        
+    def update(self):
+        self.rotate(self)
+        
+        
+        
         
 
 class Player_Object(Sprite): # Spiller klasse
-    def __init__(self, image, player_number):
+    def __init__(self, player_number, image, image_size):
+        super().__init__(image, image_size)
         self.number = player_number
-        self.image = image
-        self.image = pygame.image.load(self.image).convert_alpha()
-        self.image = pygame.transform.smoothscale(self.image, (30,30))
-        super().__init__()
-        self.mask = pygame.mask.from_surface(self.image)
-        self.original_image = self.image #brukes til rotering av sprite, unngår distortion av sprite bilde
+        self.original_image = self.image # Brukes til rotering av sprite, unngår distortion av sprite bilde
         self.speed_y = 0
         self.speed_x = 0
         self.angle = 0
-        self.bullet_list = pygame.sprite.Group()
-        self.rect.centerx = float(random.uniform(0, config.SCREEN_X-self.width))
-        self.rect.centery = float(random.uniform(140, config.SCREEN_Y-self.height))
+        
+        if player_number == 1: # Start lokasjon på skjerm
+            self.rect.centerx = 300
+            self.rect.centery = config.SCREEN_Y / 2
+        else: 
+            self.rect.centerx = config.SCREEN_X - 300
+            self.rect.centery = config.SCREEN_Y / 2
         self.health = 100
         self.fuel = 100
         self.score = 0
+        
+        
+        self.bullet_list = pygame.sprite.Group() # er denne nødvendig?
+        self.mask = pygame.mask.from_surface(self.image) # om det er tid
 
     
-    class Bullet(Sprite):
+    class Bullet(pygame.sprite.Sprite):
         def __init__(self, angle, x, y):
+            super().__init__()
             self.image = pygame.Surface([3, 3])
             self.image.fill(config.WHITE)
+            self.rect = self.image.get_rect()
             self.angle = angle
             self.speed_y = -math.cos(math.radians(self.angle))
             self.speed_x = math.sin(math.radians(self.angle))  
-            super().__init__()
             self.rect.centery = y + self.speed_y * 40
             self.rect.centerx = x + self.speed_x * 40
+            
+        def hit_player(self, group):
+            hit_list = pygame.sprite.spritecollide(self, group, False)
+            for sprite in hit_list:
+                sprite.health -= 10
+                self.kill()    
 
-        def update(self):
+        def update(self,group):
             # sletter seg selv når går ut av mappet
             if self.rect.centerx < 0 or self.rect.centerx > config.SCREEN_X:
                 self.kill()
@@ -74,28 +104,26 @@ class Player_Object(Sprite): # Spiller klasse
                 self.kill()
 
             # henter sprites som blir truffet av skudd
-            hit_list = pygame.sprite.spritecollide(self, sprite_group, False)
-            for sprite in hit_list:
-                sprite.health -= 10
-                print(sprite.health)
-                self.kill()
+            self.hit_player(group)
             self.rect.move_ip(round(self.speed_x * 10),round(self.speed_y * 10))
+        
+        
             
-    class Explosion(Sprite):
+    class Explosion(Sprite): # e klasse nødvendig her???
         def __init__(self, x, y, image):
             self.image = image
             self.image = pygame.image.load(self.image).convert_alpha()
             self.image = pygame.transform.smoothscale(self.image, (30,30))
 
     def screen_bars_update(self):
-        textScore = fontScore.render(str(self.score), True, config.WHITE, None)
-        textScoreRect = textScore.get_rect()
+        scoreText = text_file.FONT_SCORE.render(str(self.score), True, config.WHITE, None)
+        textScoreRect = scoreText.get_rect()
         
-        healthText = font.render('Health: ' + str(self.health), True, config.BLUE, None)
-        healthTextRect = text1.get_rect()
+        healthText = text_file.FONT_TEXT.render('Health: ' + str(self.health), True, config.BLUE, None)
+        healthTextRect = healthText.get_rect()
         
-        fuelText = font.render('Fuel: ' + str(self.fuel), True, config.BLUE, None)
-        fuelTextRect = text1.get_rect()
+        fuelText = text_file.FONT_TEXT.render('Fuel: ' + str(self.fuel), True, config.BLUE, None)
+        fuelTextRect = fuelText.get_rect()
         
         if self.number == 1:
             # Score tekst
@@ -109,8 +137,8 @@ class Player_Object(Sprite): # Spiller klasse
             
             
             # Visuell framvisning av liv og drivstoff
-            pygame.draw.rect(screen, config.GREEN, pygame.Rect(30, 60, self.health*3, 30)) # Health bar
-            pygame.draw.rect(screen, config.YELLOW, pygame.Rect(30, 100, self.fuel*3, 30)) # Fuel bar
+            pygame.draw.rect(pg_init.screen, config.GREEN, pygame.Rect(30, 60, self.health*3, 30)) # Health bar
+            pygame.draw.rect(pg_init.screen, config.YELLOW, pygame.Rect(30, 100, self.fuel*3, 30)) # Fuel bar
 
         if self.number == 2:
             # Samme som ovenfor, bare for andre siden
@@ -122,16 +150,16 @@ class Player_Object(Sprite): # Spiller klasse
 
             fuelTextRect.topleft = (config.SCREEN_X - 330,101)
             
-            pygame.draw.rect(screen, config.GREEN, pygame.Rect(config.SCREEN_X - 330, 60, self.health*3, 30))
-            pygame.draw.rect(screen, config.YELLOW, pygame.Rect(config.SCREEN_X - 330, 100, self.fuel*3, 30))
+            pygame.draw.rect(pg_init.screen, config.GREEN, pygame.Rect(config.SCREEN_X - 330, 60, self.health*3, 30))
+            pygame.draw.rect(pg_init.screen, config.YELLOW, pygame.Rect(config.SCREEN_X - 330, 100, self.fuel*3, 30))
             
-        screen.blit(textScore, textScoreRect)
-        screen.blit(healthText, healthTextRect)
-        screen.blit(fuelText, fuelTextRect)
+        pg_init.screen.blit(scoreText, textScoreRect)
+        pg_init.screen.blit(healthText, healthTextRect)
+        pg_init.screen.blit(fuelText, fuelTextRect)
             
     def shoot(self):
         bullet = self.Bullet(self.angle, self.rect.centerx, self.rect.centery)
-        self.bullet_list.add(bullet)
+        return bullet # returneres for class Game controll
         
 
     def rotateObject(self, value):
@@ -140,7 +168,6 @@ class Player_Object(Sprite): # Spiller klasse
         self.image = pygame.transform.rotozoom(self.original_image, -self.angle, 1)
         self.rect = self.image.get_rect(center=self.rect.center)
         self.image.blit(self.image, self.rect)
-        print(self.angle)
 
 
     def gravity(self):
@@ -156,8 +183,7 @@ class Player_Object(Sprite): # Spiller klasse
     def update(self):
         # self.gravity()
         self.screen_bars_update()
-        self.bullet_list.update()
-        self.bullet_list.draw(screen)
+        self.bullet_list.draw(pg_init.screen)
         self.rect.move_ip(round(self.speed_x),round(self.speed_y))
             
       
@@ -165,131 +191,97 @@ class Player_Object(Sprite): # Spiller klasse
     def boundries(self):
         pass
         
-def create_objects(): 
-    bullet_group = pygame.sprite.Group()
-    sprite_group = pygame.sprite.Group()
-    sprite_group.add(Player_Object(config.T_IMAGE, 1)) # Spiller 1
-    sprite_group.add(Player_Object(config.T_IMAGE, 2)) # Spiller 2
-    return sprite_group, bullet_group
+class Game:
+    def __init__(self):
+        self.clock = pygame.time.Clock()
+        self.sprite_group = pygame.sprite.Group()
+        self.bullet_group = pygame.sprite.Group()
+        self.obstacle_group = pygame.sprite.Group()
+        self.fuel_group = pygame.sprite.Group()
+        self.sprite_group.add(Player_Object(1, config.T_IMAGE, 30)) # Spiller 1
+        self.sprite_group.add(Player_Object(2, config.T_IMAGE, 30)) # Spiller 2
+        self.player_group = self.sprite_group.sprites()
+        self.obstacle_group.add(Obstacle(config.O_IMAGE, 50))
+        
 
-def reset_game(group):
-    pygame.sprite.Group.empty(group)
-    pygame.sprite.Group.empty(bullet_group)
-    group.add(Player_Object(config.T_IMAGE,1))
-    group.add(Player_Object(config.T_IMAGE,2))
+    def reset_game(self):
+        pygame.sprite.Group.empty(self.sprite_group)
+        pygame.sprite.Group.empty(self.bullet_group)
+        self.sprite_group.add(Player_Object(1, config.T_IMAGE, 30)) # Spiller 1
+        self.sprite_group.add(Player_Object(2, config.T_IMAGE, 30)) # Spiller 2
 
-    player_group  = group.sprites()
-    player1 = player_group[0]
-    player2 = player_group[1]
-    return player1, player2
+    def play_game(self):
+        while not config.DONE:
+            player1 = self.player_group[0]
+            player2 = self.player_group[1]
 
-def play_game(group):
-    player_group  = group.sprites()
-    player1 = player_group[0]
-    player2 = player_group[1]
+            if player1.health <= 0:
+                player2.score += 1
+                player1.health = 100 
+            if player2.health <= 0:
+                player1.score += 1
+                player2.health = 100
 
-    if player1.health == 0:
-        player2.score += 1
-        player1.health = 100
-    if player2.health == 0:
-        player1.score += 1
-        player2.health = 100
+            if player1.score == 3 or player2.score == 3:
+                pg_init.screen.fill(config.BLACK)
+                font = pygame.font.Font('freesansbold.ttf', 100)
+                if player1.score == 3:
+                    gameOver = font.render("PLAYER 1 WINS!", True, config.WHITE, None)
+                else:
+                    gameOver = font.render("PLAYER 2 WINS!", True, config.WHITE, None)
+                gameOverRect= gameOver.get_rect()
+                gameOverRect.center = (config.SCREEN_X/2,config.SCREEN_Y/2)
+                pg_init.screen.blit(gameOver,gameOverRect)
+                pygame.display.update()
+                pygame.time.wait(5000)
+                player1, player2 = self.reset_game()
 
-    if player1.score == 3 or player2.score == 3:
-        screen.fill(config.BLACK)
-        font = pygame.font.Font('freesansbold.ttf', 100)
-        if player1.score == 3:
-            gameOver = font.render("PLAYER 1 WINS!", True, config.WHITE, None)
-        else:
-            gameOver = font.render("PLAYER 2 WINS!", True, config.WHITE, None)
-        gameOverRect= gameOver.get_rect()
-        gameOverRect.center = (config.SCREEN_X/2,config.SCREEN_Y/2)
-        screen.blit(gameOver,gameOverRect)
-        pygame.display.update()
-        pygame.time.wait(5000)
-        player1, player2 = reset_game(group)
+            keys = pygame.key.get_pressed() 
 
-    keys = pygame.key.get_pressed() 
+            if player1:
+                if keys[pygame.K_w]: 
+                    if player1.fuel > 0:
+                        player1.fuel -= 0.5
+                        player1.acceleration()
+                        
+                if keys[pygame.K_d]:
+                    player1.rotateObject(5)
+                if keys[pygame.K_a]:
+                    player1.rotateObject(-5)
+                if keys[pygame.K_SPACE]:
+                    self.bullet_group.add(player1.shoot())
+                    
+            if player2:
+                if keys[pygame.K_UP]: 
+                    if player2.fuel > 0:
+                        player2.fuel -= 0.5
+                        player2.acceleration()
+                if keys[pygame.K_RIGHT]:
+                    player2.rotateObject(5)
+                if keys[pygame.K_LEFT]:
+                    player2.rotateObject(-5)
+                if keys[pygame.K_DOWN]:
+                    self.bullet_group.add(player2.shoot())
+                    
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE or event.type == pygame.QUIT:
+                        config.DONE = True
+                    if event.key == pygame.K_r:
+                        self.reset_game()
+                        
+            pg_init.screen.fill(config.BLACK)
+            pg_init.screen.blit(text_file.player_1_text, text_file.textRect1)
+            pg_init.screen.blit(text_file.player_2_text, text_file.textRect2)
 
-    if player1:
-        if keys[pygame.K_w]: 
-            if player1.fuel > 0:
-                player1.fuel -= 0.5
-                player1.acceleration()
-                
-        if keys[pygame.K_d]:
-            player1.rotateObject(5)
-        if keys[pygame.K_a]:
-            player1.rotateObject(-5)
-        if keys[pygame.K_SPACE]:
-            player1.shoot()
-            
-    if player2:
-        if keys[pygame.K_UP]: 
-            if player2.fuel > 0:
-                player2.fuel -= 0.5
-                player2.acceleration()
-        if keys[pygame.K_RIGHT]:
-            player2.rotateObject(5)
-        if keys[pygame.K_LEFT]:
-            player2.rotateObject(-5)
-        if keys[pygame.K_DOWN]:
-            player2.shoot()
-
-
-
-
-            
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE or event.type == pygame.QUIT:
-                config.DONE = True
-            if event.key == pygame.K_r:
-                player1, player2 = reset_game(group)
-                
-    screen.fill(config.BLACK)
-
-    screen.blit(text1, textrect1)
-    screen.blit(text2, textrect2)
-
-    group.update()
-    group.draw(screen)
-    pygame.display.update()
-    # pygame.display.flip()
-    clock.tick(config.FPS)
-
-
-pygame.init()
-pygame.font.init()
-
-# Dette e rotete, få dette ut. lag en funksjon i config.py
-font = pygame.font.Font('freesansbold.ttf', 30)
-fontScore = pygame.font.Font('freesansbold.ttf', 90)
-
-text1 = font.render('Player1', True, config.WHITE, None)
-textrect1 = text1.get_rect()
-textrect1.topleft = (35,30)
-
-text2 = font.render('Player2', True, config.WHITE, None)
-textrect2 = text2.get_rect()
-textrect2.topright = (config.SCREEN_X-35, 30)
-
-
-
-screen = pygame.display.set_mode((config.SCREEN_X, config.SCREEN_Y))
-
-
-# til hit
-
-
-
-pygame.display.set_caption("Erling's Mayhamorama")
-clock = pygame.time.Clock()
-
-
-sprite_group, bullet_group = create_objects()
+            self.sprite_group.update()
+            self.bullet_group.update(self.sprite_group)
+            self.obstacle_group.update()
+            self.sprite_group.draw(pg_init.screen)
+            pygame.display.update()
+            pygame.display.flip()
+            self.clock.tick(config.FPS)
 
 
 if __name__ == "__main__":
-    while not config.DONE:
-        play_game(sprite_group)
+    Game().play_game()
