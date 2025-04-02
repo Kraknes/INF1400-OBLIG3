@@ -6,10 +6,11 @@ import text_file
 import pg_init
 import time 
 
-# lag bensinkanne for fuel påfyll, eller landingsplatform
+# TODO:
+# lag bensinkanne for fuel påfyll, eller landingsplatform - OK
 # lag tekst for spiller, liv og fuel - OK
 # lag objekt som man kan kræsje i - OK
-# lag vegger 
+# lag vegger - Må ikke
 # hvis en spiller kræsjer, mister man poeng - OK
 
 # Må ha minimum to filer - OK
