@@ -61,8 +61,12 @@ import cProfile
 class Sprite(pygame.sprite.Sprite): # Alle objektene henter inn denne for å kunne konstruere Sprites
     """
     Main class for sprite inheritance. 
-    Inherits from pygame.sprite class.
+    
     Creates image and rect parameters for game use. 
+    
+     Args:
+        pygame.sprite.Sprite:
+            Inherits from pygame.sprite class to gain functions for image rendering on screen. 
     """
     def __init__(self, image, image_size):
         super().__init__()
@@ -78,6 +82,7 @@ class Sprite(pygame.sprite.Sprite): # Alle objektene henter inn denne for å kun
     def moving_ypos(self): # Moving object up and down
         """
         Inherited functions for moving of unplayable objects.
+        
         Will be used by obstacles and fuel objects.
         """
         self.rect.centery += self.speed
@@ -86,12 +91,11 @@ class Sprite(pygame.sprite.Sprite): # Alle objektene henter inn denne for å kun
 
 class Obstacle(Sprite):
     """
-    Obstacle class for game.
+    Obstacle class for game manipulation.
+    
     Visualized as a black hole.
+    
     Inherits from Sprite class for image rendering. 
-
-    Args:
-        Sprite (_type_): _description_
     """
     def __init__(self, image, image_size):
         super().__init__(image, image_size)
@@ -102,16 +106,31 @@ class Obstacle(Sprite):
         self.angle = 0
         
     def rotate(self):
+        """
+        Function for self rotation of image to simulate black hole in reality. 
+        
+        Non-functional for game play.
+        """
+        self.angle += 1
         self.image = pygame.transform.rotozoom(self.original_image, self.angle, 1)
         self.rect = self.image.get_rect(center=self.rect.center)
         self.image.blit(self.image, self.rect)
         
     def update(self):
+        """
+        Self updating function for obstacle class.
+        """
         self.moving_ypos()
-        self.angle += 1
         self.rotate()
         
 class Fuel(Sprite):
+    """
+    Fuel class for object in game. Players can gain fuel when touched in game. 
+
+    Args:
+        Sprite(Class): 
+            Inherits Sprite to gain functions and rendering to be seen on screen. 
+    """
     def __init__(self, image, image_size):
         super().__init__(image, image_size)
         self.rect.centerx = float(random.uniform(400, config.SCREEN_X-400))
@@ -123,8 +142,15 @@ class Fuel(Sprite):
         self.moving_ypos()
 
 
-class Player_Object(Sprite): # Spiller klasse
-    
+class Player_Object(Sprite): # Spiller klassea
+    """_summary_
+
+    Args:
+        Sprite (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     class Bullet(pygame.sprite.Sprite):
         def __init__(self, angle, x, y, number):
             super().__init__()
