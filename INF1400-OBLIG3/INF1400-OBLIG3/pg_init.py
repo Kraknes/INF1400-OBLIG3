@@ -1,7 +1,13 @@
 import pygame
 import config
 
+"""
+Pygame initialization module.
 
+Moved to own file for better control and easier reading code in mayhem.py
+
+Alter parameters at your own risk, can/will cause unforeseen consequences.
+"""
 
 pygame.init()
 pygame.font.init()

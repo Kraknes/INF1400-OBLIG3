@@ -1,5 +1,11 @@
 import pygame
+"""
+Constant module file for mayhem.py
 
+Moved to own file for better control and easier reading code in mayhem.py
+
+Alter parameters at your own risk, can/will cause unforeseen consequences.
+"""
 
 # Number constants
 GRAVITY = 0.2

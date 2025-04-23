@@ -4,6 +4,13 @@ import pg_init
 
 pygame.init()
 pygame.font.init()
+"""
+Module for rendering text and bars in game.
+
+Moved to own file for better control and easier reading code in mayhem.py
+
+Alter parameters at your own risk, can/will cause unforeseen consequences.
+"""
 
 # Text
 FONT_TEXT = pygame.font.Font('freesansbold.ttf', 30)
@@ -13,11 +20,16 @@ player_1_text = FONT_TEXT.render('Player 1', True, config.WHITE, None)
 textRect1 = player_1_text.get_rect()
 textRect1.topleft = (35,30)
 
-player_2_text = FONT_TEXT.render('Player2', True, config.WHITE, None)
+player_2_text = FONT_TEXT.render('Player 2', True, config.WHITE, None)
 textRect2 = player_2_text.get_rect()
 textRect2.topright = (config.SCREEN_X-35, 30)
 
 def showTextAndBar(number, score, health, fuel):
+    """
+    Shows text and bar in game.
+
+    Depending on player object, text and bars will be rendered on respective sides of the screen.
+    """
     pg_init.screen.blit(player_1_text, textRect1)
     pg_init.screen.blit(player_2_text, textRect2)
     
